@@ -113,7 +113,3 @@ cd Minicrm
 MIT
 
 ---
-
-## 🙏 Credits
-
-- Built with ❤️ by your team and GitHub Copilot
