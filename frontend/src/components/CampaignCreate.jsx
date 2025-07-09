@@ -9,6 +9,9 @@ const CampaignCreate = () => {
   const [logic, setLogic] = useState("AND");
   const [status, setStatus] = useState("");
   const [preview, setPreview] = useState(null);
+  const [nlpEnabled, setNlpEnabled] = useState(false);
+  const [nlQuery, setNlQuery] = useState("");
+  const [nlpLoading, setNlpLoading] = useState(false);
 
   const handlePreview = async () => {
     try {
@@ -32,6 +35,20 @@ const CampaignCreate = () => {
       setPreview(null);
     } catch (err) {
       setStatus("Error: " + (err.response?.data?.error || "Unknown error"));
+    }
+  };
+
+  const handleParseNaturalLanguage = async () => {
+    setNlpLoading(true);
+    try {
+      const res = await axios.post("http://localhost:3000/students/parse-nl", { query: nlQuery }, { withCredentials: true });
+      setRules(res.data.rules);
+      setLogic(res.data.logic || "AND");
+      setStatus("Parsed rules from description.");
+    } catch (err) {
+      setStatus("Error: Could not parse the description. Try rephrasing.");
+    } finally {
+      setNlpLoading(false);
     }
   };
 
@@ -97,15 +114,51 @@ const CampaignCreate = () => {
             </p>
           </div>
 
-          {/* Segment Rules */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Target Segment Rules
-            </label>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <RuleBuilder rules={rules} setRules={setRules} logic={logic} setLogic={setLogic} />
-            </div>
+          {/* NLP Toggle */}
+          <div className="flex items-center mb-2">
+            <label className="mr-3 font-medium text-gray-700">NLP Segment Builder</label>
+            <button
+              type="button"
+              onClick={() => setNlpEnabled(v => !v)}
+              className={`w-12 h-6 flex items-center rounded-full p-1 duration-300 ease-in-out ${nlpEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+            >
+              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${nlpEnabled ? 'translate-x-6' : ''}`}></div>
+            </button>
+            <span className="ml-2 text-sm text-gray-500">{nlpEnabled ? 'ON' : 'OFF'}</span>
           </div>
+
+          {/* Segment Rules or NLP Input */}
+          {nlpEnabled ? (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Describe your target segment (in plain English)
+              </label>
+              <input
+                type="text"
+                value={nlQuery}
+                onChange={e => setNlQuery(e.target.value)}
+                placeholder='e.g., "students with CGPA above 8 and age below 22"'
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={handleParseNaturalLanguage}
+                disabled={nlpLoading || !nlQuery}
+                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+              >
+                {nlpLoading ? 'Parsing...' : 'Parse to Rules'}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Target Segment Rules
+              </label>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <RuleBuilder rules={rules} setRules={setRules} logic={logic} setLogic={setLogic} />
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-200">
