@@ -6,11 +6,14 @@ import LoadingSpinner from './LoadingSpinner';
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
+  console.log('ProtectedRoute:', { user, loading });
+
   if (loading) {
     return <LoadingSpinner />;
   }
 
   if (!user) {
+    console.log('ProtectedRoute: Not authenticated, redirecting to /login');
     return <Navigate to="/login" replace />;
   }
 

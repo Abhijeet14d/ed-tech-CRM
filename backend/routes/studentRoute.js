@@ -87,7 +87,7 @@ router.post("/bulk-upload", upload.single("file"), async (req, res) => {
     }
 
     // Limit the number of records
-    const MAX_RECORDS = 1000000;
+    const MAX_RECORDS = 100000;
     if (students.length > MAX_RECORDS) {
       return res.status(400).json({ error: `You can upload a maximum of ${MAX_RECORDS} records at a time.` });
     }
@@ -157,15 +157,13 @@ router.delete("/", async (req, res) => {
   }
 });
 
-// Gemini-powered Natural Language to Rule Parser
+
 router.post("/parse-nl", async (req, res) => {
   const { query } = req.body;
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return res.status(500).json({ error: "Gemini API key not set" });
     const prompt = `You are an API for a student segmentation engine.\n\nGiven a plain English description, always return ONLY a JSON array of rules, no explanation, no markdown, no extra text.\n\nEach rule: {\"field\": (name|age|email|cgpa|courseName), \"operator\": (<|<=|=|>=|>|contains), \"value\": string or number}.\n\nExample: [{\"field\": \"cgpa\", \"operator\": \">=\", \"value\": \"8\"}].\n\nDescription: ${query}`;
-
-    // Use Gemini 2.0 Flash model endpoint
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -177,13 +175,10 @@ router.post("/parse-nl", async (req, res) => {
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     let rules = [];
     try {
-      // Try direct JSON parse
       rules = JSON.parse(text);
     } catch (e) {
-      // Try to extract JSON array from text using regex
       let match = text.match(/\[.*\]/s);
       if (!match) {
-        // Try to extract any JSON object or array
         match = text.match(/\{.*\}|\[.*\]/s);
       }
       if (match) {

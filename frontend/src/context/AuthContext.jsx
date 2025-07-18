@@ -16,14 +16,18 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const checkAuth = async () => {
+    console.log('Checking auth...');
     try {
       const response = await axios.get('http://localhost:3000/auth/me', { 
         withCredentials: true 
       });
+      console.log('Auth response:', response.data);
       setUser(response.data);
     } catch (error) {
+      console.error('Auth check error:', error);
       setUser(null);
     } finally {
+      console.log('Auth check complete, setting loading to false');
       setLoading(false);
     }
   };
