@@ -6,8 +6,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-await connectRedis();
-await mongoose.connect(process.env.MONGO_URI);
+// Connect to Redis and MongoDB with proper error handling
+try {
+  await connectRedis();
+  await mongoose.connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  });
+  console.log('Worker: Connected to MongoDB and Redis');
+} catch (error) {
+  console.error('Worker: Database connection failed:', error);
+  process.exit(1);
+}
 
 const BATCH_SIZE = 100; // Process 100 students at a time
 const BATCH_DELAY = 1000; // 1 second delay between batches
