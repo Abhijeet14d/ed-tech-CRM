@@ -4,7 +4,7 @@ import multer from "multer";
 import { parse } from "csv-parse";
 import xlsx from "xlsx";
 import fs from "fs";
-import { createClient } from "redis";
+import { client } from "../config/redisClient.js";
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
@@ -55,13 +55,14 @@ router.post("/segment-preview", async (req, res) => {
 });
 
 // Bulk upload
-
-const redisClient = createClient();
-redisClient.connect();
-
 router.post("/bulk-upload", upload.single("file"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
     let students = [];
+    
     if (req.file.mimetype === "text/csv") {
       const parser = fs.createReadStream(req.file.path).pipe(parse({ columns: true }));
       for await (const record of parser) {
@@ -92,14 +93,26 @@ router.post("/bulk-upload", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: `You can upload a maximum of ${MAX_RECORDS} records at a time.` });
     }
 
-    // Push each student record to Redis queue
-    for (const student of students) {
-      await redisClient.rPush("student_upload_queue", JSON.stringify(student));
-    }
+    // Queue the file processing job for background worker
+    await client.lPush('student_processing_queue', JSON.stringify({
+      filePath: req.file.path,
+      userId: req.user?.id,
+      students: students,
+      timestamp: new Date()
+    }));
 
-    res.json({ message: "Bulk upload queued", count: students.length });
+    // Send single response
+    return res.status(200).json({ 
+      message: "Bulk upload queued successfully", 
+      count: students.length 
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Bulk upload error:', err);
+    // Check if response hasn't been sent yet
+    if (!res.headersSent) {
+      return res.status(500).json({ error: err.message });
+    }
   }
 });
 

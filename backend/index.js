@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
 import session from 'express-session';
+import { RedisStore } from 'connect-redis';
 import passport from 'passport';
 import cors from 'cors';
 
@@ -10,9 +11,12 @@ import "./config/passport.js";
 import authRouter from './routes/authRouter.js';
 import studentRouter from './routes/studentRoute.js';
 import campaignRouter from './routes/campaignRoutes.js';
+import { client, connectRedis } from './config/redisClient.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+await connectRedis();
 
 app.use(cors({
   origin: ['http://localhost:5173'],
@@ -21,7 +25,13 @@ app.use(cors({
 
 app.use(express.json());
 
+const redisStore = new RedisStore({
+  client: client,
+  prefix: "minicrm:sess:",
+})
+
 app.use(session({
+  store: redisStore,
   secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: false,
