@@ -3,7 +3,10 @@ import passport from "passport";
 
 const router = express.Router();
 
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
 
 router.get(
   "/google/callback",
@@ -12,7 +15,8 @@ router.get(
     session: true,
   }),
   (req, res) => {
-    res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
+    console.log('Auth success, redirecting to:', process.env.FRONTEND_URL);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   }
 );
 

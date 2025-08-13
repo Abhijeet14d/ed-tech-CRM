@@ -15,7 +15,7 @@ const CampaignCreate = () => {
 
   const handlePreview = async () => {
     try {
-      const res = await axios.post("http://localhost:3000/students/segment-preview", { logic, rules }, { withCredentials: true });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/students/segment-preview`, { logic, rules }, { withCredentials: true });
       setPreview(res.data.count);
     } catch (err) {
       setPreview("Error");
@@ -25,7 +25,7 @@ const CampaignCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:3000/campaigns", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/campaigns`, {
         title,
         message,
         segment: { logic, rules }
@@ -41,7 +41,7 @@ const CampaignCreate = () => {
   const handleParseNaturalLanguage = async () => {
     setNlpLoading(true);
     try {
-      const res = await axios.post("http://localhost:3000/students/parse-nl", { query: nlQuery }, { withCredentials: true });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/students/parse-nl`, { query: nlQuery }, { withCredentials: true });
       setRules(res.data.rules);
       setLogic(res.data.logic || "AND");
       setStatus("Parsed rules from description.");

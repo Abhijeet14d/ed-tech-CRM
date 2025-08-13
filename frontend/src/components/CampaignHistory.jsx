@@ -7,7 +7,7 @@ const CampaignHistory = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get("http://localhost:3000/campaigns", { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_API_URL}/campaigns`, { withCredentials: true })
       .then(res => {
         setCampaigns(res.data);
         setLoading(false);

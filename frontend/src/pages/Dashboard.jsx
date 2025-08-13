@@ -14,8 +14,8 @@ const Dashboard = () => {
     const fetchStats = async () => {
       try {
         const [studentsRes, campaignsRes] = await Promise.all([
-          axios.get('http://localhost:3000/students/stats', { withCredentials: true }),
-          axios.get('http://localhost:3000/campaigns', { withCredentials: true })
+          axios.get(`${import.meta.env.VITE_API_URL}/students/stats`, { withCredentials: true }),
+          axios.get(`${import.meta.env.VITE_API_URL}/campaigns`, { withCredentials: true })
         ]);
         
         setStats({

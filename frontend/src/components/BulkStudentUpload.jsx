@@ -21,7 +21,7 @@ const BulkStudentUpload = () => {
   const fetchStudents = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:3000/students?page=${page}&limit=20`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/students?page=${page}&limit=20`, {
         withCredentials: true,
       });
       setStudents(response.data.students);
@@ -42,7 +42,7 @@ const BulkStudentUpload = () => {
     
     setDeleting(studentId);
     try {
-      await axios.delete(`http://localhost:3000/students/${studentId}`, {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/students/${studentId}`, {
         withCredentials: true,
       });
       // Refresh the current page
@@ -63,7 +63,7 @@ const BulkStudentUpload = () => {
     
     setDeletingAll(true);
     try {
-      const response = await axios.delete(`http://localhost:3000/students/`, {
+      const response = await axios.delete(`${import.meta.env.VITE_API_URL}/students/`, {
         withCredentials: true,
       });
       setMessage(`✅ All students deleted successfully! (${response.data.deletedCount} records removed)`);
@@ -91,7 +91,7 @@ const BulkStudentUpload = () => {
     formData.append("file", file);
 
     try {
-      const response = await axios.post("http://localhost:3000/students/bulk-upload", formData, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/students/bulk-upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true,
       });

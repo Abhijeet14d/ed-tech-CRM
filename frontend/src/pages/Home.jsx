@@ -5,7 +5,7 @@ const Home = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:3000/auth/me', { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true })
       .then(res => setUser(res.data))
       .catch(() => setUser(null));
   }, []);
@@ -24,7 +24,7 @@ const Home = () => {
             />
             <p className="text-lg font-medium mb-4">Welcome, <span className="text-blue-600">{user.displayName}</span></p>
             <a
-              href="http://localhost:3000/auth/logout"
+              href={`${import.meta.env.VITE_API_URL}/auth/logout`}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
             >
               Logout

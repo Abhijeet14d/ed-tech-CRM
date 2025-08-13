@@ -17,7 +17,7 @@ const StudentActivityUpload = () => {
     // Fetch students for dropdown
     const fetchStudents = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/students/list', { withCredentials: true });
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/students/list`, { withCredentials: true });
         setStudents(response.data || []);
       } catch (error) {
         console.error('Error fetching students:', error);
@@ -34,7 +34,7 @@ const StudentActivityUpload = () => {
     e.preventDefault();
     try {
       await axios.post(
-        "http://localhost:3000/students/activity",
+        `${import.meta.env.VITE_API_URL}/students/activity`,
         {
           ...form,
           progress: Number(form.progress),

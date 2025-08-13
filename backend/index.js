@@ -16,6 +16,13 @@ import { client, connectRedis } from './config/redisClient.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors({
+  origin: [process.env.FRONTEND_URL || 'http://localhost:5173','https://ed-tech-crm.vercel.app'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}));
+
 // Connect to databases
 try {
   await connectRedis();
@@ -25,11 +32,6 @@ try {
   process.exit(1);
 }
 
-app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:5173'],
-  credentials: true
-}));
-
 app.use(express.json());
 
 const redisStore = new RedisStore({
@@ -37,18 +39,23 @@ const redisStore = new RedisStore({
   prefix: "minicrm:sess:",
 });
 
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1); // enable secure cookies behind proxy
+}
+
 app.use(session({
   store: redisStore,
   secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production', // only send cookie over HTTPS
     httpOnly: true,
     maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
+
 
 app.use(passport.initialize());
 app.use(passport.session());

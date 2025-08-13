@@ -19,7 +19,7 @@ const StudentProfileUpload = () => {
     e.preventDefault();
     try {
       await axios.post(
-        "http://localhost:3000/students/profile",
+        `${import.meta.env.VITE_API_URL}/students/profile`,
         {
           ...form,
           age: Number(form.age),

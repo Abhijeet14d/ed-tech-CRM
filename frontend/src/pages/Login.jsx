@@ -7,7 +7,7 @@ const Login = () => {
 
   useEffect(() => {
     // Check if user is already logged in
-    axios.get('http://localhost:3000/auth/me', { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true })
       .then(res => {
         if (res.data) {
           navigate('/'); // Redirect to dashboard if already logged in
@@ -19,7 +19,9 @@ const Login = () => {
   }, [navigate]);
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:3000/auth/google";
+    console.log(`${import.meta.env.VITE_API_URL}/auth/google`);
+    
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   };
 
   return (
