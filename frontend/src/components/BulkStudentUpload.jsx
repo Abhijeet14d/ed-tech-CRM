@@ -47,9 +47,9 @@ const BulkStudentUpload = () => {
       });
       // Refresh the current page
       fetchStudents(currentPage);
-      setMessage("✅ Student deleted successfully!");
+      setMessage("Student deleted successfully!");
     } catch (error) {
-      setMessage("❌ Failed to delete student: " + (error.response?.data?.error || "Unknown error"));
+      setMessage("Failed to delete student: " + (error.response?.data?.error || "Unknown error"));
     } finally {
       setDeleting(null);
     }
@@ -57,7 +57,7 @@ const BulkStudentUpload = () => {
 
   // Delete all students
   const handleDeleteAll = async () => {
-    if (!window.confirm("⚠️ Are you sure you want to delete ALL students? This action cannot be undone!")) {
+    if (!window.confirm("Are you sure you want to delete ALL students? This action cannot be undone!")) {
       return;
     }
     
@@ -66,12 +66,12 @@ const BulkStudentUpload = () => {
       const response = await axios.delete(`${import.meta.env.VITE_API_URL}/students/`, {
         withCredentials: true,
       });
-      setMessage(`✅ All students deleted successfully! (${response.data.deletedCount} records removed)`);
+      setMessage(`All students deleted successfully! (${response.data.deletedCount} records removed)`);
       // Reset to first page and refresh
       setCurrentPage(1);
       fetchStudents(1);
     } catch (error) {
-      setMessage("❌ Failed to delete all students: " + (error.response?.data?.error || "Unknown error"));
+      setMessage("Failed to delete all students: " + (error.response?.data?.error || "Unknown error"));
     } finally {
       setDeletingAll(false);
     }
@@ -95,7 +95,7 @@ const BulkStudentUpload = () => {
         headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true,
       });
-      setMessage(`✅ Upload successful! ${response.data.count} students added.`);
+      setMessage(`Upload successful! ${response.data.count} students queued for processing.`);
       setFile(null);
       // Reset the file input
       const fileInput = document.querySelector('input[type="file"]');
@@ -103,7 +103,7 @@ const BulkStudentUpload = () => {
       // Refresh students list
       fetchStudents(currentPage);
     } catch (err) {
-      setMessage("❌ " + (err.response?.data?.error || "Upload failed"));
+      setMessage("Error: " + (err.response?.data?.error || "Upload failed"));
     } finally {
       setUploading(false);
     }
@@ -119,7 +119,7 @@ const BulkStudentUpload = () => {
 
         {/* Instructions */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="text-sm font-semibold text-blue-800 mb-2">📋 File Format Requirements:</h3>
+          <h3 className="text-sm font-semibold text-blue-800 mb-2">File Format Requirements:</h3>
           <ul className="text-sm text-blue-700 space-y-1">
             <li>• Supported formats: CSV (.csv) or Excel (.xlsx)</li>
             <li>• Required columns: <b>name, age, email, cgpa, courseName</b></li>
@@ -134,7 +134,11 @@ const BulkStudentUpload = () => {
             </label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
               <div className="space-y-2">
-                <div className="text-4xl text-gray-400">📁</div>
+                <div className="flex justify-center">
+                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  </svg>
+                </div>
                 <div>
                   <input 
                     type="file" 
@@ -163,7 +167,7 @@ const BulkStudentUpload = () => {
             <div>
               {message && (
                 <div className={`px-4 py-2 rounded-lg ${
-                  message.includes('❌') 
+                  message.includes('Failed') || message.includes('Error')
                     ? 'bg-red-50 text-red-700' 
                     : 'bg-green-50 text-green-700'
                 }`}>
@@ -183,7 +187,9 @@ const BulkStudentUpload = () => {
                 </>
               ) : (
                 <>
-                  <span>📤</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
                   <span>Upload Students</span>
                 </>
               )}
@@ -214,7 +220,9 @@ const BulkStudentUpload = () => {
                 </>
               ) : (
                 <>
-                  <span>🗑️</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                   <span>Delete All Records</span>
                 </>
               )}
@@ -228,7 +236,11 @@ const BulkStudentUpload = () => {
           </div>
         ) : students.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4">👥</div>
+            <div className="flex justify-center mb-4">
+              <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
             <p className="text-gray-500">No students found. Upload some students to get started!</p>
           </div>
         ) : (
@@ -267,7 +279,9 @@ const BulkStudentUpload = () => {
                             </>
                           ) : (
                             <>
-                              <span>🗑️</span>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                               <span>Delete</span>
                             </>
                           )}

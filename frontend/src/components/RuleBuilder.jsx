@@ -84,7 +84,9 @@ const RuleBuilder = ({ rules, setRules, logic, setLogic }) => {
               className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
               title="Remove rule"
             >
-              ✕
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         ))}
@@ -95,7 +97,9 @@ const RuleBuilder = ({ rules, setRules, logic, setLogic }) => {
         onClick={addRule} 
         className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
       >
-        <span>➕</span>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
         <span>Add Another Rule</span>
       </button>
     </div>
