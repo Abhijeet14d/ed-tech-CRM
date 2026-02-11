@@ -85,9 +85,23 @@ const CampaignHistory = () => {
                         </span>
                       </div>
                       <p className="text-gray-600 mb-3">{campaign.message}</p>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 mb-3">
                         <span className="font-medium">Target Rules:</span> {formatSegmentRules(campaign.segment)}
                       </div>
+                      
+                      {/* Creator Info */}
+                      {campaign.createdBy && (
+                        <div className="flex items-center space-x-2 pt-3 border-t border-gray-100">
+                          <img 
+                            src={campaign.createdBy.photo} 
+                            alt={campaign.createdBy.displayName}
+                            className="w-6 h-6 rounded-full"
+                          />
+                          <span className="text-sm text-gray-500">
+                            Created by <span className="font-medium text-gray-700">{campaign.createdBy.displayName}</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right text-sm text-gray-500">
                       <div>{new Date(campaign.createdAt).toLocaleDateString()}</div>

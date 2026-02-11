@@ -1,38 +1,61 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import RuleBuilder from "./RuleBuilder";
 
 const CampaignCreate = () => {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [rules, setRules] = useState([{ field: "age", operator: "<", value: "" }]);
+  const [rules, setRules] = useState([{ field: "age", operator: ">", value: "" }]);
   const [logic, setLogic] = useState("AND");
   const [status, setStatus] = useState("");
-  const [preview, setPreview] = useState(null);
-  const [nlpEnabled, setNlpEnabled] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [studentCount, setStudentCount] = useState(0);
+  const [builderMode, setBuilderMode] = useState("sql"); // "sql" or "nlp"
   const [nlQuery, setNlQuery] = useState("");
   const [nlpLoading, setNlpLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const handlePreview = async () => {
+    setPreviewLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/students/segment-preview`, { logic, rules }, { withCredentials: true });
-      setPreview(res.data.count);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/students/segment-preview`, 
+        { logic, rules }, 
+        { withCredentials: true }
+      );
+      setStudentCount(res.data.count);
+      setSelectedStudents(res.data.students || []);
     } catch (err) {
-      setPreview("Error");
+      setStatus("Error: Could not fetch students");
+      setSelectedStudents([]);
+      setStudentCount(0);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (studentCount === 0) {
+      setStatus("Error: Please select at least one student using the segment builder");
+      return;
+    }
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/campaigns`, {
         title,
         message,
-        segment: { logic, rules }
+        segment: { logic, rules },
+        createdBy: user?._id
       }, { withCredentials: true });
-      setStatus("Campaign created!");
-      setTitle(""); setMessage(""); setRules([{ field: "age", operator: "<", value: "" }]);
-      setPreview(null);
+      setStatus("Campaign created successfully!");
+      setTitle(""); 
+      setMessage(""); 
+      setRules([{ field: "age", operator: ">", value: "" }]);
+      setSelectedStudents([]);
+      setStudentCount(0);
+      setNlQuery("");
     } catch (err) {
       setStatus("Error: " + (err.response?.data?.error || "Unknown error"));
     }
@@ -41,10 +64,14 @@ const CampaignCreate = () => {
   const handleParseNaturalLanguage = async () => {
     setNlpLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/students/parse-nl`, { query: nlQuery }, { withCredentials: true });
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/students/parse-nl`, 
+        { query: nlQuery }, 
+        { withCredentials: true }
+      );
       setRules(res.data.rules);
       setLogic(res.data.logic || "AND");
-      setStatus("Parsed rules from description.");
+      setStatus("Rules parsed from description. Click 'Find Students' to see results.");
     } catch (err) {
       setStatus("Error: Could not parse the description. Try rephrasing.");
     } finally {
@@ -53,16 +80,22 @@ const CampaignCreate = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create New Campaign</h1>
-          <p className="text-gray-600 mt-1">Design targeted campaigns for student engagement</p>
-        </div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Create New Campaign</h1>
+        <p className="text-gray-600 mt-1">Design targeted campaigns for student engagement</p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Campaign Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Box 1: Campaign Details */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-2">1</span>
+            Campaign Details
+          </h2>
+          
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Campaign Title
@@ -78,113 +111,209 @@ const CampaignCreate = () => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Target Audience Preview
+                Campaign Message
               </label>
-              <div className="flex items-center space-x-2">
-                <button 
-                  type="button" 
-                  onClick={handlePreview} 
-                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Preview Segment
-                </button>
-                {preview !== null && (
-                  <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg">
-                    <span className="font-medium">{preview}</span> students targeted
-                  </div>
-                )}
-              </div>
+              <textarea 
+                value={message} 
+                onChange={e => setMessage(e.target.value)} 
+                placeholder="Write your campaign message here... Use {name} to personalize" 
+                rows={4}
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                required 
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Tip: Use <code className="bg-gray-100 px-1 rounded">{"{name}"}</code> in your message to personalize it for each student
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Box 2: Segment Builder */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-2">2</span>
+              Select Target Students
+            </h2>
+            
+            {/* Toggle Button */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setBuilderMode("sql")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  builderMode === "sql" 
+                    ? "bg-white text-blue-600 shadow-sm" 
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Rule Builder
+              </button>
+              <button
+                type="button"
+                onClick={() => setBuilderMode("nlp")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  builderMode === "nlp" 
+                    ? "bg-white text-blue-600 shadow-sm" 
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Natural Language
+              </button>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Campaign Message
-            </label>
-            <textarea 
-              value={message} 
-              onChange={e => setMessage(e.target.value)} 
-              placeholder="Write your campaign message here... Use {name} to personalize" 
-              rows={4}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-              required 
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Tip: Use {"{name}"} in your message to personalize it for each student
-            </p>
-          </div>
+          {/* SQL Builder Mode */}
+          {builderMode === "sql" && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <RuleBuilder rules={rules} setRules={setRules} logic={logic} setLogic={setLogic} />
+            </div>
+          )}
 
-          {/* NLP Toggle */}
-          <div className="flex items-center mb-2">
-            <label className="mr-3 font-medium text-gray-700">NLP Segment Builder</label>
-            <button
-              type="button"
-              onClick={() => setNlpEnabled(v => !v)}
-              className={`w-12 h-6 flex items-center rounded-full p-1 duration-300 ease-in-out ${nlpEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
-            >
-              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${nlpEnabled ? 'translate-x-6' : ''}`}></div>
-            </button>
-            <span className="ml-2 text-sm text-gray-500">{nlpEnabled ? 'ON' : 'OFF'}</span>
-          </div>
-
-          {/* Segment Rules or NLP Input */}
-          {nlpEnabled ? (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Describe your target segment (in plain English)
-              </label>
-              <input
-                type="text"
-                value={nlQuery}
-                onChange={e => setNlQuery(e.target.value)}
-                placeholder='e.g., "students with CGPA above 8 and age below 22"'
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          {/* NLP Builder Mode */}
+          {builderMode === "nlp" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Describe your target audience in plain English
+                </label>
+                <input
+                  type="text"
+                  value={nlQuery}
+                  onChange={e => setNlQuery(e.target.value)}
+                  placeholder='e.g., "students with CGPA above 8 and age below 22"'
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleParseNaturalLanguage}
                 disabled={nlpLoading || !nlQuery}
-                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+                className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
-                {nlpLoading ? 'Parsing...' : 'Parse to Rules'}
+                {nlpLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Parsing...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span>Convert to Rules</span>
+                  </>
+                )}
               </button>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Target Segment Rules
-              </label>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <RuleBuilder rules={rules} setRules={setRules} logic={logic} setLogic={setLogic} />
-              </div>
-            </div>
-          )}
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-            <div>
-              {status && (
-                <div className={`px-4 py-2 rounded-lg ${
-                  status.includes('Error') 
-                    ? 'bg-red-50 text-red-700' 
-                    : 'bg-green-50 text-green-700'
-                }`}>
-                  {status}
+              {/* Show converted rules */}
+              {rules.length > 0 && rules[0].value && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm font-medium text-blue-800 mb-2">Generated Rules:</p>
+                  <div className="text-sm text-blue-700">
+                    {rules.map((rule, idx) => (
+                      <span key={idx}>
+                        {idx > 0 && <span className="mx-1 font-medium">{logic}</span>}
+                        <span className="bg-blue-100 px-2 py-1 rounded">{rule.field} {rule.operator} {rule.value}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-            <button 
-              type="submit" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors font-medium flex items-center space-x-2"
+          )}
+
+          {/* Find Students Button */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={handlePreview}
+              disabled={previewLoading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors flex items-center space-x-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.58-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-              </svg>
-              <span>Launch Campaign</span>
+              {previewLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Finding Students...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <span>Find Students</span>
+                </>
+              )}
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+
+        {/* Box 3: Selected Students */}
+        {studentCount > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center justify-between">
+              <span className="flex items-center">
+                <span className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm mr-2">3</span>
+                Selected Students
+              </span>
+              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                {studentCount} student{studentCount !== 1 ? 's' : ''} selected
+              </span>
+            </h2>
+            
+            <div className="max-h-64 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {selectedStudents.map((student) => (
+                  <div 
+                    key={student._id} 
+                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-100"
+                  >
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 font-medium text-sm">
+                        {student.name?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{student.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {studentCount > selectedStudents.length && (
+                <p className="text-sm text-gray-500 mt-3 text-center">
+                  Showing {selectedStudents.length} of {studentCount} students
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Status Message */}
+        {status && (
+          <div className={`px-4 py-3 rounded-lg ${
+            status.includes('Error') 
+              ? 'bg-red-50 text-red-700 border border-red-200' 
+              : 'bg-green-50 text-green-700 border border-green-200'
+          }`}>
+            {status}
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <div className="flex justify-end">
+          <button 
+            type="submit" 
+            disabled={studentCount === 0}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-colors font-medium flex items-center space-x-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            <span>Launch Campaign</span>
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

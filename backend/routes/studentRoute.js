@@ -47,8 +47,9 @@ router.post("/segment-preview", async (req, res) => {
       [rule.field]: { [mongoOperators[rule.operator]]: isNaN(rule.value) ? rule.value : Number(rule.value) }
     }));
     const query = logic === "AND" ? { $and: filters } : { $or: filters };
+    const students = await Student.find(query).select('name email _id').limit(100);
     const count = await Student.countDocuments(query);
-    res.json({ count });
+    res.json({ count, students });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

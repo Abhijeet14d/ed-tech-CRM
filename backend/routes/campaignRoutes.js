@@ -39,7 +39,7 @@ router.post("/", async (req, res) => {
 // Get all campaigns (history)
 router.get("/", async (req, res) => {
   try {
-    const campaigns = await Campaign.find().sort({ createdAt: -1 });
+    const campaigns = await Campaign.find().populate('createdBy', 'displayName email photo').sort({ createdAt: -1 });
     res.json(campaigns);
   } catch (err) {
     res.status(500).json({ error: err.message });
