@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import Profile from './pages/Profile.jsx'
 import StudentProfileUpload from './components/StudentProfileUpload.jsx';
 import BulkStudentUpload from './components/BulkStudentUpload.jsx';
 import CampaignCreate from './components/CampaignCreate';
@@ -20,6 +21,13 @@ const App = () => {
           <ProtectedRoute>
             <Layout>
               <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Layout>
+              <Profile />
             </Layout>
           </ProtectedRoute>
         } />
