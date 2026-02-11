@@ -64,6 +64,15 @@ app.use('/auth', authRouter);
 app.use('/students', studentRouter);
 app.use('/campaigns', campaignRouter);
 
+// Health check endpoint - ping this to keep Render alive
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 app.get('/', (req, res) => {
   res.send('Welcome to the Minicrm API'); 
 });

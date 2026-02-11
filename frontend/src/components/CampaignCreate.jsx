@@ -7,8 +7,7 @@ const CampaignCreate = () => {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [rules, setRules] = useState([{ field: "age", operator: ">", value: "" }]);
-  const [logic, setLogic] = useState("AND");
+  const [rules, setRules] = useState([{ field: "age", operator: ">", value: "", connector: "AND" }]);
   const [status, setStatus] = useState("");
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [studentCount, setStudentCount] = useState(0);
@@ -22,7 +21,7 @@ const CampaignCreate = () => {
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/students/segment-preview`, 
-        { logic, rules }, 
+        { rules }, 
         { withCredentials: true }
       );
       setStudentCount(res.data.count);
@@ -46,13 +45,13 @@ const CampaignCreate = () => {
       await axios.post(`${import.meta.env.VITE_API_URL}/campaigns`, {
         title,
         message,
-        segment: { logic, rules },
+        segment: { rules },
         createdBy: user?._id
       }, { withCredentials: true });
       setStatus("Campaign created successfully!");
       setTitle(""); 
       setMessage(""); 
-      setRules([{ field: "age", operator: ">", value: "" }]);
+      setRules([{ field: "age", operator: ">", value: "", connector: "AND" }]);
       setSelectedStudents([]);
       setStudentCount(0);
       setNlQuery("");
@@ -69,8 +68,12 @@ const CampaignCreate = () => {
         { query: nlQuery }, 
         { withCredentials: true }
       );
-      setRules(res.data.rules);
-      setLogic(res.data.logic || "AND");
+      // Convert old format to new per-rule connector format
+      const parsedRules = res.data.rules.map((rule, idx) => ({
+        ...rule,
+        connector: idx === 0 ? "AND" : (res.data.logic || "AND")
+      }));
+      setRules(parsedRules);
       setStatus("Rules parsed from description. Click 'Find Students' to see results.");
     } catch (err) {
       setStatus("Error: Could not parse the description. Try rephrasing.");
@@ -166,7 +169,7 @@ const CampaignCreate = () => {
           {/* SQL Builder Mode */}
           {builderMode === "sql" && (
             <div className="bg-gray-50 rounded-lg p-4">
-              <RuleBuilder rules={rules} setRules={setRules} logic={logic} setLogic={setLogic} />
+              <RuleBuilder rules={rules} setRules={setRules} />
             </div>
           )}
 
@@ -213,7 +216,7 @@ const CampaignCreate = () => {
                   <div className="text-sm text-blue-700">
                     {rules.map((rule, idx) => (
                       <span key={idx}>
-                        {idx > 0 && <span className="mx-1 font-medium">{logic}</span>}
+                        {idx > 0 && <span className="mx-1 font-medium">{rule.connector}</span>}
                         <span className="bg-blue-100 px-2 py-1 rounded">{rule.field} {rule.operator} {rule.value}</span>
                       </span>
                     ))}

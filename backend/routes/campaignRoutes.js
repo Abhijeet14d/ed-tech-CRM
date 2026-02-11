@@ -12,10 +12,43 @@ router.post("/", async (req, res) => {
     const campaign = await Campaign.create({ title, message, segment, createdBy });
 
     const mongoOperators = { "<": "$lt", "<=": "$lte", "=": "$eq", ">=": "$gte", ">": "$gt" };
-    const filters = segment.rules.map(rule => ({
-      [rule.field]: { [mongoOperators[rule.operator]]: isNaN(rule.value) ? rule.value : Number(rule.value) }
-    }));
-    const query = segment.logic === "AND" ? { $and: filters } : { $or: filters };
+    
+    // Build query with per-rule connectors
+    const buildQuery = (rules) => {
+      if (!rules || rules.length === 0) return {};
+      if (rules.length === 1) {
+        const rule = rules[0];
+        return {
+          [rule.field]: { [mongoOperators[rule.operator]]: isNaN(rule.value) ? rule.value : Number(rule.value) }
+        };
+      }
+      
+      let orGroups = [];
+      let currentAndGroup = [{
+        [rules[0].field]: { [mongoOperators[rules[0].operator]]: isNaN(rules[0].value) ? rules[0].value : Number(rules[0].value) }
+      }];
+      
+      for (let i = 1; i < rules.length; i++) {
+        const rule = rules[i];
+        const filter = {
+          [rule.field]: { [mongoOperators[rule.operator]]: isNaN(rule.value) ? rule.value : Number(rule.value) }
+        };
+        
+        if (rule.connector === "OR") {
+          orGroups.push(currentAndGroup.length === 1 ? currentAndGroup[0] : { $and: currentAndGroup });
+          currentAndGroup = [filter];
+        } else {
+          currentAndGroup.push(filter);
+        }
+      }
+      
+      orGroups.push(currentAndGroup.length === 1 ? currentAndGroup[0] : { $and: currentAndGroup });
+      
+      if (orGroups.length === 1) return orGroups[0];
+      return { $or: orGroups };
+    };
+    
+    const query = buildQuery(segment.rules);
 
     const students = await Student.find(query);
     for (const student of students) {

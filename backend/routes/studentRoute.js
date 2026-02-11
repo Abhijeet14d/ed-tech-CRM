@@ -41,12 +41,52 @@ router.get("/stats", async (req, res) => {
 
 router.post("/segment-preview", async (req, res) => {
   try {
-    const { logic, rules } = req.body; // logic: "AND" or "OR", rules: [{field, operator, value}]
+    const { rules } = req.body; // rules: [{field, operator, value, connector}]
     const mongoOperators = { "<": "$lt", "<=": "$lte", "=": "$eq", ">=": "$gte", ">": "$gt" };
-    const filters = rules.map(rule => ({
-      [rule.field]: { [mongoOperators[rule.operator]]: isNaN(rule.value) ? rule.value : Number(rule.value) }
-    }));
-    const query = logic === "AND" ? { $and: filters } : { $or: filters };
+    
+    // Build query with per-rule connectors
+    // Strategy: Process rules sequentially, grouping AND-connected rules,
+    // then OR them together when encountering OR connectors
+    const buildQuery = (rules) => {
+      if (rules.length === 0) return {};
+      if (rules.length === 1) {
+        const rule = rules[0];
+        return {
+          [rule.field]: { [mongoOperators[rule.operator]]: isNaN(rule.value) ? rule.value : Number(rule.value) }
+        };
+      }
+      
+      // Group rules: Start with first rule, then add based on connector
+      let orGroups = [];
+      let currentAndGroup = [{
+        [rules[0].field]: { [mongoOperators[rules[0].operator]]: isNaN(rules[0].value) ? rules[0].value : Number(rules[0].value) }
+      }];
+      
+      for (let i = 1; i < rules.length; i++) {
+        const rule = rules[i];
+        const filter = {
+          [rule.field]: { [mongoOperators[rule.operator]]: isNaN(rule.value) ? rule.value : Number(rule.value) }
+        };
+        
+        if (rule.connector === "OR") {
+          // Save current AND group and start a new one
+          orGroups.push(currentAndGroup.length === 1 ? currentAndGroup[0] : { $and: currentAndGroup });
+          currentAndGroup = [filter];
+        } else {
+          // AND - add to current group
+          currentAndGroup.push(filter);
+        }
+      }
+      
+      // Don't forget the last group
+      orGroups.push(currentAndGroup.length === 1 ? currentAndGroup[0] : { $and: currentAndGroup });
+      
+      // If only one group, no need for $or
+      if (orGroups.length === 1) return orGroups[0];
+      return { $or: orGroups };
+    };
+    
+    const query = buildQuery(rules);
     const students = await Student.find(query).select('name email _id').limit(100);
     const count = await Student.countDocuments(query);
     res.json({ count, students });
